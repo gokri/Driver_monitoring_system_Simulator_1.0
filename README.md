@@ -1,6 +1,6 @@
 # Driver Monitoring System Simulator — Demo 2
 
-> **PRIVATE REPOSITORY — Do not make public.**  
+> **PRIVATE REPOSITORY **  
 > Contains Aumovio DMS engine used with permission for academic research (NTU Dissertation).  
 > Not for redistribution.
 
