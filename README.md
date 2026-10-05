@@ -25,7 +25,7 @@ driver state monitoring via the Aumovio DMS engine (MediaPipe + CLIP).
 
 ## DMS Engine
 
-Located in `Aumvio-DMS/` — provided by Aumovio.  
+Located in `Aumvio-DMS/` 
 Source: https://github.com/EzhangHZ/Aumvio-DMS-demo (private)  
 Uses MediaPipe Face Mesh for head pose + iris tracking, and CLIP ViT-B/16 for behaviour classification.
 
