@@ -23,6 +23,8 @@ class Face_mesh():
         self.mp_face_mesh = mp.solutions.face_mesh
         self.start_time = time.time()
         self.device = torch.device('cuda:0' if torch.cuda.is_available() else 'cpu')
+        self._clip_frame_counter = 0
+        self._clip_interval = 10   # run CLIP every N frames (increase for faster FPS)
         self.face_mesh = self.mp_face_mesh.FaceMesh(static_image_mode=True, max_num_faces=3,
                                                refine_landmarks=True, min_detection_confidence=0.5, min_tracking_confidence=0.5)
         self.mp_drawing = mp.solutions.drawing_utils
@@ -532,9 +534,10 @@ class Face_mesh():
             # show mouth
             self.show_mouth(land_pts)
 
-            self.abnormal_behaviour_detection(frame)
-
-            self.expression_recognition(frame)
+            self._clip_frame_counter += 1
+            if self._clip_frame_counter % self._clip_interval == 0:
+                self.abnormal_behaviour_detection(frame)
+                self.expression_recognition(frame)
 
             # eye direction arrows hidden for demo
             # if self.eye_open:
