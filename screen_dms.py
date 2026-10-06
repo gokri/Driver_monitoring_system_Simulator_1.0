@@ -46,9 +46,19 @@ fm = Face_mesh()
 print("  DMS ready.\n")
 
 # ── Camera ────────────────────────────────────────────────────────────────────
-cap = cv2.VideoCapture(CAM_IDX)
-if not cap.isOpened():
-    cap = cv2.VideoCapture(0)
+cap = None
+for idx in ([CAM_IDX] + [i for i in range(3) if i != CAM_IDX]):
+    c = cv2.VideoCapture(idx, cv2.CAP_DSHOW)
+    if c.isOpened():
+        ret, test = c.read()
+        if ret and test is not None:
+            cap = c
+            print(f"  Webcam opened on index {idx}")
+            break
+        c.release()
+if cap is None:
+    print("  WARNING: No webcam found — showing blank panel")
+    cap = cv2.VideoCapture(0, cv2.CAP_DSHOW)
 cap.set(cv2.CAP_PROP_FRAME_WIDTH,  320)
 cap.set(cv2.CAP_PROP_FRAME_HEIGHT, 240)
 cap.set(cv2.CAP_PROP_FPS, 30)
