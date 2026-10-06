@@ -156,15 +156,17 @@ else:
 
 # Thrustmaster T300RS axis mapping:
 #   Axis 0 = steering wheel  (-1=full left, +1=full right)
-#   Axis 1 = throttle pedal  (+1=released, -1=fully pressed)
-#   Axis 2 = brake pedal     (+1=released, -1=fully pressed)
+#   Axis 1 = brake pedal     (middle pedal)
+#   Axis 2 = throttle pedal  (right pedal)
+#   Axis 3 = clutch pedal    (left pedal) — press to reverse
 STEER_AXIS    = 0
-BRAKE_AXIS    = 1   # middle pedal
-THROTTLE_AXIS = 2   # right pedal
+BRAKE_AXIS    = 1
+THROTTLE_AXIS = 2
+CLUTCH_AXIS   = 3
 STEER_SCALE   = 0.4   # reduce sensitivity (wheel has large rotation range)
-REVERSE_BTN   = 3     # triangle/square button to toggle reverse
+CLUTCH_THRESHOLD = 0.5  # press clutch past 50% to engage reverse
 
-wheel_reverse = [False]   # toggle with REVERSE_BTN
+wheel_reverse = [False]
 
 screen = pygame.display.set_mode((WIN_W, WIN_H))
 pygame.display.set_caption("Demo 2 — DIL Simulation | Manual Drive")
@@ -205,7 +207,8 @@ while running:
         steer     = max(-1.0, min(1.0, raw_steer * STEER_SCALE))
         throttle  = pedal_to_01(joy.get_axis(THROTTLE_AXIS))
         brake     = pedal_to_01(joy.get_axis(BRAKE_AXIS))
-        reverse   = wheel_reverse[0]
+        clutch    = pedal_to_01(joy.get_axis(CLUTCH_AXIS))
+        reverse   = clutch > CLUTCH_THRESHOLD
     else:
         reverse  = keys[pygame.K_q]
         throttle = 0.5 if (keys[pygame.K_w] or reverse) else 0.0
