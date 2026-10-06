@@ -83,6 +83,8 @@ spawn_points = world.get_map().get_spawn_points()
 tm           = client.get_trafficmanager(8000)
 tm.set_global_distance_to_leading_vehicle(4.0)
 tm.set_hybrid_physics_mode(True)
+tm.global_percentage_speed_difference(20.0)   # NPCs drive 20% slower = calmer traffic
+tm.set_respawn_dormant_vehicles(False)
 
 settings = world.get_settings()
 settings.synchronous_mode = False
@@ -104,7 +106,7 @@ if ego is None:
 print(f"Ego spawned: Tesla Model 3 (blue)")
 
 # ── NPC traffic ───────────────────────────────────────────────────────────────
-NPC_COUNT = 25
+NPC_COUNT = 10   # fewer NPCs = faster spawn + calmer scene
 npc_bps = [bp for bp in bp_lib.filter('vehicle.*')
            if int(bp.get_attribute('number_of_wheels')) == 4]
 npcs = []
