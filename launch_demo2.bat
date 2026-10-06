@@ -10,13 +10,13 @@ echo   Make sure CARLA 0.9.16 server is running first!
 echo =====================================================
 echo.
 
-echo Starting Terminal 1 -- setup_demo2.py  (CARLA driving view)
-start "Demo2 - Drive" cmd /k "%PYTHON%" setup_demo2.py
-
-timeout /t 8 /nobreak
-
-echo Starting Terminal 2 -- screen_dms.py   (DMS + webcam view)
+echo Starting Terminal 1 -- screen_dms.py   (DMS loading CLIP ~15s)
 start "Demo2 - DMS" cmd /k "%PYTHON%" screen_dms.py
+
+timeout /t 12 /nobreak
+
+echo Starting Terminal 2 -- setup_demo2.py  (CARLA driving view)
+start "Demo2 - Drive" cmd /k "%PYTHON%" setup_demo2.py
 
 echo.
 echo Both screens launched.
