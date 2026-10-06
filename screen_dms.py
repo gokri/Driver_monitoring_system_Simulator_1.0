@@ -81,6 +81,7 @@ t0           = time.time()
 WIN_NAME = "Demo 2 - DMS + CARLA Live"
 cv2.namedWindow(WIN_NAME, cv2.WINDOW_NORMAL)
 cv2.resizeWindow(WIN_NAME, PANEL_W * 2, PANEL_H + 36)
+cv2.moveWindow(WIN_NAME, 100, 100)   # force window to appear on screen
 
 print(f"Running. Writing state to {STATE_FILE}")
 print("Press Q or ESC to quit.\n")
