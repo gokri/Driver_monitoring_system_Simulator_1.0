@@ -192,6 +192,8 @@ while running:
         if event.type == pygame.KEYDOWN:
             if event.key == pygame.K_ESCAPE:
                 running = False
+            if event.key == pygame.K_f:
+                pygame.display.toggle_fullscreen()
         if event.type == pygame.JOYBUTTONDOWN:
             if event.button == REVERSE_BTN:
                 wheel_reverse[0] = not wheel_reverse[0]

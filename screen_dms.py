@@ -157,6 +157,10 @@ while True:
 
     dms_frame  = cv2.resize(dms_frame,  (PANEL_W, PANEL_H))
     carla_disp = cv2.resize(carla_disp, (PANEL_W, PANEL_H))
+    if len(dms_frame.shape) == 2:
+        dms_frame = cv2.cvtColor(dms_frame, cv2.COLOR_GRAY2BGR)
+    if len(carla_disp.shape) == 2:
+        carla_disp = cv2.cvtColor(carla_disp, cv2.COLOR_GRAY2BGR)
     combined = np.hstack([dms_frame, carla_disp])
     display = combined
     cv2.imshow(WIN_NAME, display)
