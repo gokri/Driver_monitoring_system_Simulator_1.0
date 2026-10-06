@@ -155,6 +155,8 @@ while True:
     cv2.rectangle(carla_disp, (0, 0), (260, 28), (0, 0, 0), -1)
     put(carla_disp, "CARLA - DRIVER VIEW", 5, 20, col=(255, 180, 0), scale=0.55)
 
+    dms_frame  = cv2.resize(dms_frame,  (PANEL_W, PANEL_H))
+    carla_disp = cv2.resize(carla_disp, (PANEL_W, PANEL_H))
     combined = np.hstack([dms_frame, carla_disp])
     display = combined
     cv2.imshow(WIN_NAME, display)

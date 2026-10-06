@@ -159,8 +159,8 @@ else:
 #   Axis 1 = throttle pedal  (+1=released, -1=fully pressed)
 #   Axis 2 = brake pedal     (+1=released, -1=fully pressed)
 STEER_AXIS    = 0
-THROTTLE_AXIS = 1
-BRAKE_AXIS    = 2
+BRAKE_AXIS    = 1   # middle pedal
+THROTTLE_AXIS = 2   # right pedal
 STEER_SCALE   = 0.4   # reduce sensitivity (wheel has large rotation range)
 REVERSE_BTN   = 3     # triangle/square button to toggle reverse
 
