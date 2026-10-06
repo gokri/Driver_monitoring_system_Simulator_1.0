@@ -154,7 +154,17 @@ if pygame.joystick.get_count() > 0:
 else:
     print("No wheel — using WASD keyboard")
 
-STEER_AXIS, BRAKE_AXIS, THROTTLE_AXIS = 0, 1, 2
+# Thrustmaster T300RS axis mapping:
+#   Axis 0 = steering wheel  (-1=full left, +1=full right)
+#   Axis 1 = throttle pedal  (+1=released, -1=fully pressed)
+#   Axis 2 = brake pedal     (+1=released, -1=fully pressed)
+STEER_AXIS    = 0
+THROTTLE_AXIS = 1
+BRAKE_AXIS    = 2
+STEER_SCALE   = 0.4   # reduce sensitivity (wheel has large rotation range)
+REVERSE_BTN   = 3     # triangle/square button to toggle reverse
+
+wheel_reverse = [False]   # toggle with REVERSE_BTN
 
 screen = pygame.display.set_mode((WIN_W, WIN_H))
 pygame.display.set_caption("Demo 2 — DIL Simulation | Manual Drive")
@@ -180,7 +190,10 @@ while running:
         if event.type == pygame.KEYDOWN:
             if event.key == pygame.K_ESCAPE:
                 running = False
-            pass
+        if event.type == pygame.JOYBUTTONDOWN:
+            if event.button == REVERSE_BTN:
+                wheel_reverse[0] = not wheel_reverse[0]
+                print(f"Reverse: {'ON' if wheel_reverse[0] else 'OFF'}")
 
     # ── Driver state ──────────────────────────────────────────────────────────
     driver_state = manual_state if manual_state else read_driver_state()
@@ -188,9 +201,11 @@ while running:
     # ── Driver input ──────────────────────────────────────────────────────────
     keys = pygame.key.get_pressed()
     if joy:
-        steer    = joy.get_axis(STEER_AXIS)
-        brake    = pedal_to_01(joy.get_axis(BRAKE_AXIS))
-        throttle = pedal_to_01(joy.get_axis(THROTTLE_AXIS))
+        raw_steer = joy.get_axis(STEER_AXIS)
+        steer     = max(-1.0, min(1.0, raw_steer * STEER_SCALE))
+        throttle  = pedal_to_01(joy.get_axis(THROTTLE_AXIS))
+        brake     = pedal_to_01(joy.get_axis(BRAKE_AXIS))
+        reverse   = wheel_reverse[0]
     else:
         reverse  = keys[pygame.K_q]
         throttle = 0.5 if (keys[pygame.K_w] or reverse) else 0.0
@@ -202,7 +217,7 @@ while running:
         throttle=float(throttle),
         brake=float(brake),
         steer=float(steer),
-        reverse=bool(reverse) if not joy else False,
+        reverse=bool(reverse),
     ))
 
     # Write state for supervisor dashboard
@@ -225,8 +240,10 @@ while running:
     bar = pygame.Surface((WIN_W, 36), pygame.SRCALPHA)
     bar.fill((0, 0, 0, 160))
     screen.blit(bar, (0, WIN_H - 36))
+    input_mode = f"Wheel: {joy.get_name()[:20]}" if joy else "Keyboard: WASD"
+    rev_str    = "  [REV]" if reverse else ""
     screen.blit(font_s.render(
-        f"Demo 2  -  DIL Simulation  |  Town10HD  |  {speed:.1f} km/h  |  ESC=quit",
+        f"Demo 2  -  DIL  |  {speed:.1f} km/h{rev_str}  |  {input_mode}  |  ESC=quit",
         True, (120, 150, 180)), (10, WIN_H - 26))
 
     # Corner state chip only — no banner, no flash
