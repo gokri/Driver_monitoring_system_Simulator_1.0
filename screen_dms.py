@@ -49,8 +49,9 @@ print("  DMS ready.\n")
 cap = cv2.VideoCapture(CAM_IDX)
 if not cap.isOpened():
     cap = cv2.VideoCapture(0)
-cap.set(cv2.CAP_PROP_FRAME_WIDTH,  1280)
-cap.set(cv2.CAP_PROP_FRAME_HEIGHT, 720)
+cap.set(cv2.CAP_PROP_FRAME_WIDTH,  640)
+cap.set(cv2.CAP_PROP_FRAME_HEIGHT, 480)
+cap.set(cv2.CAP_PROP_FPS, 30)
 
 # ── State writer ──────────────────────────────────────────────────────────────
 def write_dms_state(driver_state, extras={}):
