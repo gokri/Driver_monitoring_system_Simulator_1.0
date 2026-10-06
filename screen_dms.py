@@ -26,6 +26,7 @@ import json
 import os
 import sys
 import time
+import threading
 
 DEMO2_DIR  = os.path.dirname(os.path.abspath(__file__))
 DMS_DIR    = os.path.join(DEMO2_DIR, 'Aumvio-DMS')
@@ -84,6 +85,61 @@ def put(img, text, x, y, col=(255, 255, 255), scale=0.5, thick=1):
 carla_frame = np.zeros((PANEL_H, PANEL_W, 3), dtype=np.uint8)
 put(carla_frame, "Waiting for CARLA...", 160, 240, col=(100, 100, 100), scale=0.8)
 
+# ── Shared DMS result (updated by background thread) ─────────────────────────
+_lock        = threading.Lock()
+_dms_result  = {
+    "dms_frame":   None,
+    "face_found":  False,
+    "behaviour":   "—",
+    "gaze_yaw":    0.0,
+    "head_yaw":    0.0,
+    "pitch":       0.0,
+    "driver_state": "ALERT",
+    "state_col":   (0, 200, 80),
+}
+_stop_thread = threading.Event()
+
+def dms_worker():
+    while not _stop_thread.is_set():
+        ret, frame = cap.read()
+        if not ret:
+            time.sleep(0.03)
+            continue
+        frame = cv2.resize(frame, (PANEL_W, PANEL_H))
+        outputs   = fm.get_3D_face_mesh(frame)
+        dms_frame = outputs[0] if outputs[0] is not None else frame.copy()
+        face_found = outputs[0] is not None
+        behaviour = fm.abnormal_behaviour or "—"
+        gaze_yaw  = float(np.mean(fm.gaze_yaw[-5:]))   if len(fm.gaze_yaw)   > 1 else 0.0
+        head_yaw  = float(np.mean(fm.angle_yaw[-5:]))   if len(fm.angle_yaw)  > 1 else 0.0
+        pitch     = float(np.mean(fm.angle_pitch[-5:])) if len(fm.angle_pitch) > 1 else 0.0
+        if not face_found:
+            state, col = "DRIVER ABSENT", (160, 160, 160)
+        elif behaviour == "drowsiness" or fm.eye_close:
+            state, col = "DROWSY", (0, 140, 255)
+        elif behaviour in ("answering the phone", "texting with phone", "drinking"):
+            state, col = "DISTRACTED", (0, 60, 255)
+        elif abs(gaze_yaw) > 25 or abs(head_yaw) > 20:
+            state, col = "DISTRACTED", (0, 100, 220)
+        else:
+            state, col = "ALERT", (0, 200, 80)
+        write_dms_state(state, {
+            "dms_behaviour": behaviour,
+            "dms_gaze_yaw":  round(gaze_yaw, 1),
+            "dms_head_yaw":  round(head_yaw, 1),
+            "dms_pitch":     round(pitch, 1),
+        })
+        with _lock:
+            _dms_result.update({
+                "dms_frame": dms_frame, "face_found": face_found,
+                "behaviour": behaviour, "gaze_yaw": gaze_yaw,
+                "head_yaw": head_yaw,   "pitch": pitch,
+                "driver_state": state,  "state_col": col,
+            })
+
+t_dms = threading.Thread(target=dms_worker, daemon=True)
+t_dms.start()
+
 driver_state = "ALERT"
 frame_count  = 0
 t0           = time.time()
@@ -91,62 +147,43 @@ t0           = time.time()
 WIN_NAME = "Demo 2 - DMS + CARLA Live"
 cv2.namedWindow(WIN_NAME, cv2.WINDOW_NORMAL)
 cv2.resizeWindow(WIN_NAME, PANEL_W * 2, PANEL_H + 36)
-cv2.moveWindow(WIN_NAME, 100, 100)   # force window to appear on screen
+cv2.moveWindow(WIN_NAME, 100, 100)
 
 print(f"Running. Writing state to {STATE_FILE}")
 print("Press Q or ESC to quit.\n")
 
 while True:
-    ret, wcam = cap.read()
-    if not ret:
-        wcam = np.zeros((PANEL_H, PANEL_W, 3), dtype=np.uint8)
-        put(wcam, "No webcam signal", 160, 240, col=(0, 60, 255), scale=1.0)
-    else:
-        wcam = cv2.resize(wcam, (PANEL_W, PANEL_H))
+    # ── Read latest DMS result from thread ────────────────────────────────────
+    with _lock:
+        r          = dict(_dms_result)
+    dms_frame    = r["dms_frame"]
+    face_found   = r["face_found"]
+    behaviour    = r["behaviour"]
+    gaze_yaw     = r["gaze_yaw"]
+    head_yaw     = r["head_yaw"]
+    pitch        = r["pitch"]
+    driver_state = r["driver_state"]
+    state_col    = r["state_col"]
+
+    # If DMS thread hasn't produced a frame yet, show placeholder
+    if dms_frame is None:
+        dms_frame = np.zeros((PANEL_H, PANEL_W, 3), dtype=np.uint8)
+        put(dms_frame, "Starting DMS...", 160, 240, col=(100, 100, 100), scale=0.8)
+
+    # Show "NO FACE" banner when driver is out of frame
+    if not face_found:
+        cv2.rectangle(dms_frame, (0, PANEL_H//2 - 30), (PANEL_W, PANEL_H//2 + 30), (40, 40, 40), -1)
+        put(dms_frame, "NO FACE DETECTED", PANEL_W//2 - 110, PANEL_H//2 + 8,
+            col=(160, 160, 160), scale=0.8, thick=2)
 
     # ── Live CARLA frame ──────────────────────────────────────────────────────
     try:
         raw = np.load(FRAME_FILE)
         carla_frame = cv2.resize(raw, (PANEL_W, PANEL_H))
     except Exception:
-        pass   # keep last good frame
+        pass
 
     frame_count += 1
-
-    # ── Run Aumovio DMS — exact original logic ────────────────────────────────
-    outputs    = fm.get_3D_face_mesh(wcam)
-    dms_frame  = outputs[0] if outputs[0] is not None else wcam.copy()
-    face_found = outputs[0] is not None
-
-    behaviour = fm.abnormal_behaviour or "—"
-    gaze_yaw  = float(np.mean(fm.gaze_yaw[-5:]))  if len(fm.gaze_yaw)  > 1 else 0.0
-    head_yaw  = float(np.mean(fm.angle_yaw[-5:]))  if len(fm.angle_yaw)  > 1 else 0.0
-    pitch     = float(np.mean(fm.angle_pitch[-5:])) if len(fm.angle_pitch) > 1 else 0.0
-
-    # ── Exact Aumovio state logic (from run_dms_demo.py) ─────────────────────
-    if not face_found:
-        driver_state = "DRIVER ABSENT"
-        state_col    = (160, 160, 160)
-    elif behaviour == "drowsiness" or fm.eye_close:
-        driver_state = "DROWSY"
-        state_col    = (0, 140, 255)
-    elif behaviour in ("answering the phone", "texting with phone", "drinking"):
-        driver_state = "DISTRACTED"
-        state_col    = (0, 60, 255)
-    elif abs(gaze_yaw) > 25 or abs(head_yaw) > 20:
-        driver_state = "DISTRACTED"
-        state_col    = (0, 100, 220)
-    else:
-        driver_state = "ALERT"
-        state_col    = (0, 200, 80)
-
-    write_dms_state(driver_state, {
-        "dms_behaviour": behaviour,
-        "dms_gaze_yaw":  round(gaze_yaw, 1),
-        "dms_head_yaw":  round(head_yaw, 1),
-        "dms_pitch":     round(pitch, 1),
-        "dms_fps":       round(frame_count / max(time.time() - t0, 0.001), 1),
-    })
 
     # ── DMS panel overlay ─────────────────────────────────────────────────────
     overlay = dms_frame.copy()
@@ -181,6 +218,7 @@ while True:
     if key in (ord('q'), ord('Q'), 27):
         break
 
+_stop_thread.set()
 cap.release()
 cv2.destroyAllWindows()
 print("DMS screen closed.")
