@@ -105,6 +105,12 @@ def dms_worker():
         if not ret:
             time.sleep(0.03)
             continue
+        # Flush webcam buffer — grab latest frame, discard stale ones
+        for _ in range(2):
+            cap.grab()
+        ret, frame = cap.read()
+        if not ret:
+            continue
         frame = cv2.resize(frame, (PANEL_W, PANEL_H))
         outputs   = fm.get_3D_face_mesh(frame)
         dms_frame = outputs[0] if outputs[0] is not None else frame.copy()
