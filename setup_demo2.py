@@ -34,7 +34,7 @@ SCRIPT_DIR = os.path.dirname(os.path.abspath(__file__))
 STATE_FILE = os.path.join(SCRIPT_DIR, 'supervisor_state.json')
 
 os.environ['SDL_VIDEO_MAXIMIZE_WINDOW'] = '1'   # start maximized
-CAM_W, CAM_H = 1280, 720                        # camera capture resolution (fixed)
+CAM_W, CAM_H = 1920, 1080                       # 1080p for ultrawide fullscreen quality
 DEADZONE = 0.05
 
 def pedal_to_01(raw):
@@ -82,10 +82,11 @@ world.set_weather(carla.WeatherParameters(
 bp_lib       = world.get_blueprint_library()
 spawn_points = world.get_map().get_spawn_points()
 tm           = client.get_trafficmanager(8000)
-tm.set_global_distance_to_leading_vehicle(2.5)   # tight gap = no room to oscillate
+tm.set_global_distance_to_leading_vehicle(5.0)
 tm.set_hybrid_physics_mode(True)
-tm.global_percentage_speed_difference(10.0)      # 10% below speed limit = calm traffic
+tm.global_percentage_speed_difference(20.0)      # 20% slower = calmer, less collision
 tm.set_respawn_dormant_vehicles(False)
+tm.set_synchronous_mode(False)
 
 settings = world.get_settings()
 settings.synchronous_mode = False
@@ -107,7 +108,7 @@ if ego is None:
 print(f"Ego spawned: Tesla Model 3 (blue)")
 
 # ── NPC traffic ───────────────────────────────────────────────────────────────
-NPC_COUNT = 10   # fewer NPCs = faster spawn + calmer scene
+NPC_COUNT = 8
 npc_bps = [bp for bp in bp_lib.filter('vehicle.*')
            if int(bp.get_attribute('number_of_wheels')) == 4]
 npcs = []
@@ -118,10 +119,14 @@ for sp in spawn_points[1:]:
     try:
         npc = world.spawn_actor(bp, sp)
         npc.set_autopilot(True, 8000)
+        tm.auto_lane_change(npc, False)          # no lane changes = predictable
+        tm.ignore_vehicles_percentage(npc, 0)    # always respect other vehicles
         npcs.append(npc)
     except Exception:
         pass
 print(f"Spawned {len(npcs)} NPC vehicles")
+print("Settling NPCs for 2s...")
+time.sleep(2)                                    # let physics settle before driving
 
 # ── Front camera ──────────────────────────────────────────────────────────────
 cam_bp = bp_lib.find('sensor.camera.rgb')
