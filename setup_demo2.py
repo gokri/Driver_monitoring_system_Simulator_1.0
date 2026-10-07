@@ -82,7 +82,7 @@ world.set_weather(carla.WeatherParameters(
 bp_lib       = world.get_blueprint_library()
 spawn_points = world.get_map().get_spawn_points()
 tm           = client.get_trafficmanager(8000)
-tm.set_global_distance_to_leading_vehicle(12.0)  # large gap = smooth flow, no oscillation
+tm.set_global_distance_to_leading_vehicle(2.5)   # tight gap = no room to oscillate
 tm.set_hybrid_physics_mode(True)
 tm.global_percentage_speed_difference(10.0)      # 10% below speed limit = calm traffic
 tm.set_respawn_dormant_vehicles(False)
