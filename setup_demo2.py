@@ -34,7 +34,7 @@ SCRIPT_DIR = os.path.dirname(os.path.abspath(__file__))
 STATE_FILE = os.path.join(SCRIPT_DIR, 'supervisor_state.json')
 
 os.environ['SDL_VIDEO_MAXIMIZE_WINDOW'] = '1'   # start maximized
-CAM_W, CAM_H = 1920, 1080                       # 1080p for ultrawide fullscreen quality
+CAM_W, CAM_H = 2560, 1080                       # ultrawide native res for AOC Agon 32:9
 DEADZONE = 0.05
 
 def pedal_to_01(raw):
