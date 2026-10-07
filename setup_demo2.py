@@ -33,7 +33,8 @@ import os
 SCRIPT_DIR = os.path.dirname(os.path.abspath(__file__))
 STATE_FILE = os.path.join(SCRIPT_DIR, 'supervisor_state.json')
 
-WIN_W, WIN_H = 1280, 720
+os.environ['SDL_VIDEO_MAXIMIZE_WINDOW'] = '1'   # start maximized
+CAM_W, CAM_H = 1280, 720                        # camera capture resolution (fixed)
 DEADZONE = 0.05
 
 def pedal_to_01(raw):
@@ -124,8 +125,8 @@ print(f"Spawned {len(npcs)} NPC vehicles")
 
 # ── Front camera ──────────────────────────────────────────────────────────────
 cam_bp = bp_lib.find('sensor.camera.rgb')
-cam_bp.set_attribute('image_size_x', str(WIN_W))
-cam_bp.set_attribute('image_size_y', str(WIN_H))
+cam_bp.set_attribute('image_size_x', str(CAM_W))
+cam_bp.set_attribute('image_size_y', str(CAM_H))
 cam_bp.set_attribute('fov', '90')
 cam_bp.set_attribute('gamma', '2.2')
 camera = world.spawn_actor(
@@ -170,7 +171,7 @@ CLUTCH_THRESHOLD = 0.5  # press clutch past 50% to engage reverse
 
 wheel_reverse = [False]
 
-screen = pygame.display.set_mode((WIN_W, WIN_H))
+screen = pygame.display.set_mode((CAM_W, CAM_H), pygame.RESIZABLE)
 pygame.display.set_caption("Demo 2 — DIL Simulation | Manual Drive")
 clock  = pygame.time.Clock()
 font_l = pygame.font.SysFont('Consolas', 26, bold=True)
@@ -188,9 +189,13 @@ running = True
 while running:
     clock.tick(30)
 
+    WIN_W, WIN_H = screen.get_size()
+
     for event in pygame.event.get():
         if event.type == pygame.QUIT:
             running = False
+        if event.type == pygame.VIDEORESIZE:
+            screen = pygame.display.set_mode(event.size, pygame.RESIZABLE)
         if event.type == pygame.KEYDOWN:
             if event.key == pygame.K_ESCAPE:
                 running = False
@@ -239,6 +244,7 @@ while running:
     if latest_image[0] is not None:
         surf = pygame.surfarray.make_surface(
             np.transpose(latest_image[0], (1, 0, 2)))
+        surf = pygame.transform.scale(surf, (WIN_W, WIN_H))
         screen.blit(surf, (0, 0))
     else:
         screen.fill((20, 20, 30))
