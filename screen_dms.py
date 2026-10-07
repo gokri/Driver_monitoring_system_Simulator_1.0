@@ -97,7 +97,9 @@ _dms_result  = {
     "driver_state": "ALERT",
     "state_col":   (0, 200, 80),
 }
-_stop_thread = threading.Event()
+_stop_thread  = threading.Event()
+_eye_close_since = [None]   # timestamp when eyes first closed
+EYE_CLOSE_THRESHOLD = 1.5   # seconds eyes must stay closed to trigger DROWSY
 
 def dms_worker():
     while not _stop_thread.is_set():
@@ -119,9 +121,18 @@ def dms_worker():
         gaze_yaw  = float(np.mean(fm.gaze_yaw[-5:]))   if len(fm.gaze_yaw)   > 1 else 0.0
         head_yaw  = float(np.mean(fm.angle_yaw[-5:]))   if len(fm.angle_yaw)  > 1 else 0.0
         pitch     = float(np.mean(fm.angle_pitch[-5:])) if len(fm.angle_pitch) > 1 else 0.0
+        # Eye close timer — ignore blinks, only trigger after 1.5s
+        if fm.eye_close:
+            if _eye_close_since[0] is None:
+                _eye_close_since[0] = time.time()
+            sustained_eye_close = (time.time() - _eye_close_since[0]) >= EYE_CLOSE_THRESHOLD
+        else:
+            _eye_close_since[0] = None
+            sustained_eye_close = False
+
         if not face_found:
             state, col = "DRIVER ABSENT", (160, 160, 160)
-        elif behaviour == "drowsiness" or fm.eye_close:
+        elif behaviour == "drowsiness" or sustained_eye_close:
             state, col = "DROWSY", (0, 140, 255)
         elif behaviour in ("answering the phone", "texting with phone", "drinking"):
             state, col = "DISTRACTED", (0, 60, 255)
